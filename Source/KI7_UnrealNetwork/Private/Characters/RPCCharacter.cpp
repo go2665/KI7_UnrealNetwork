@@ -3,6 +3,7 @@
 
 #include "Characters/RPCCharacter.h"
 #include "Camera/CameraShakeBase.h"
+#include "NiagaraFunctionLibrary.h"
 
 // Sets default values
 ARPCCharacter::ARPCCharacter()
@@ -94,4 +95,6 @@ void ARPCCharacter::Client_OnHit_Implementation()
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	PC->ClientStartCameraShake(CameraShakeClass);
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), EffectClass, GetActorLocation() + FVector::UpVector * 100.0f, FRotator());
 }

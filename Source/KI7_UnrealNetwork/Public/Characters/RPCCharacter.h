@@ -49,4 +49,7 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "TestRPC")
 	TSubclassOf<class UCameraShakeBase> CameraShakeClass = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TestRPC")
+	TObjectPtr<class UNiagaraSystem> EffectClass = nullptr;
 };
