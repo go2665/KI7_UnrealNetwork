@@ -2,6 +2,7 @@
 
 
 #include "Characters/RPCCharacter.h"
+#include "Camera/CameraShakeBase.h"
 
 // Sets default values
 ARPCCharacter::ARPCCharacter()
@@ -48,8 +49,18 @@ void ARPCCharacter::OnTakeDamage(AActor* DamagedActor, float Damage, const UDama
 {
 	if (HasAuthority())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("맞았음"));
-	
+		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("맞았음"));	
+		//APlayerController* PC = Cast<APlayerController>(GetController());
+		//GEngine->AddOnScreenDebugMessage(
+		//	-1, 5.0f, FColor::Yellow,
+		//	FString::Printf(TEXT("Contoller: %s"), PC ? *PC->GetName() : TEXT("null")));
+		//GEngine->AddOnScreenDebugMessage(
+		//	-1, 5.0f, FColor::Yellow,
+		//	FString::Printf(TEXT("Owner: %s"), GetOwner() ? *GetOwner()->GetName() : TEXT("null")));
+		//GEngine->AddOnScreenDebugMessage(
+		//	-1, 5.0f, FColor::Yellow,
+		//	FString::Printf(TEXT("Connection: %s"), GetNetConnection() ? TEXT("O") : TEXT("X")));
+
 		Client_OnHit();	// ClientRPC로 호출
 		//Client_OnHit_Implementation(); // 그냥 호출해서 로컬 실행
 	}
@@ -73,5 +84,14 @@ void ARPCCharacter::Server_Fire_Implementation()
 
 void ARPCCharacter::Client_OnHit_Implementation()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("내가 맞았음"));
+	FString RoleName = HasAuthority() ? TEXT("Server") : TEXT("Client");
+	FString ControllerName = GetController() ? GetController()->GetName() : TEXT("NoController");
+
+	GEngine->AddOnScreenDebugMessage(
+		-1, 5.0f, FColor::Red,
+		FString::Printf(TEXT("[%s] %s : 내가 맞았음"), *RoleName, *ControllerName)
+	);
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	PC->ClientStartCameraShake(CameraShakeClass);
 }
