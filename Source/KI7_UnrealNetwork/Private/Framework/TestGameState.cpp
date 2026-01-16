@@ -13,6 +13,8 @@ void ATestGameState::BeginPlay()
 {
 	Super::BeginPlay();
 	GameRemainingTime = GameDuration;
+
+	//PlayerArray.Num();	// 접속인원수
 }
 
 void ATestGameState::Tick(float DeltaTime)
