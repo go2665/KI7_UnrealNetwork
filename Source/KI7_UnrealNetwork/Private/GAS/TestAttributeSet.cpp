@@ -55,6 +55,10 @@ void UTestAttributeSet::OnRep_Health(const FGameplayAttributeData& OldHealth)
 {
 	// GAS에 어트리뷰트가 리플리케이션 되었다고 알림(필수)
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UTestAttributeSet, Health, OldHealth);
+
+	//UAbilitySystemComponent* ASC = GetOwningAbilitySystemComponent();
+	//ASC->GetAvatarActor();
+	//ASC->GetOwnerActor();
 }	
 
 void UTestAttributeSet::OnRep_MaxHealth(const FGameplayAttributeData& OldHealth)
