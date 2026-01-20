@@ -20,13 +20,19 @@ public:
 	AGASPlayerCharacter();
 
 protected:
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PossessedBy(AController* NewController) override;
 	virtual void UnPossessed() override;
 	virtual void OnRep_PlayerState() override;
 
-	void OnAbility1Press();
+	void OnAbility1Press();	// 입력에 바인딩 된 함수
+
+	UFUNCTION(Server, Reliable)
+	void Server_ExecuteAbility1();
 
 private:
+	void InitializeInputBind(AController* ControllerToBind);
+	void ClearInputBind();
 	void InitializeAbilitySystem();
 	virtual void OnHealthChanged(const FOnAttributeChangeData& Data);
 

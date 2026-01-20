@@ -9,6 +9,7 @@
 #include "UI/DataLineWidget.h"
 #include "Components/WidgetComponent.h"
 #include "AbilitySystemComponent.h"
+#include "GameFramework/PlayerState.h"
 
 // Sets default values
 AGASPlayerCharacter::AGASPlayerCharacter()
@@ -19,35 +20,63 @@ AGASPlayerCharacter::AGASPlayerCharacter()
 	Widget->SetupAttachment(GetRootComponent());
 }
 
+void AGASPlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	ClearInputBind();
+}
+
 void AGASPlayerCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
-
-	ATestPlayerController* PC = Cast<ATestPlayerController>(NewController);
-	PC->OnAbility1Press.BindUObject(this, &AGASPlayerCharacter::OnAbility1Press);	// 플레이어 컨트롤러의 입력 신호 받기
-
+	
+	InitializeInputBind(NewController);
 	InitializeAbilitySystem();	// 서버에서 실행하기 위한 용도
 }
 
 void AGASPlayerCharacter::UnPossessed()
 {
-	ATestPlayerController* PC = Cast<ATestPlayerController>(GetController());
-	PC->OnAbility1Press.Unbind();
-
+	ClearInputBind();
 	Super::UnPossessed();
 }
 
 void AGASPlayerCharacter::OnRep_PlayerState()
 {
 	Super::OnRep_PlayerState();
+	InitializeInputBind(GetController());
 	InitializeAbilitySystem();	// 클라이언트에서 실행
 }
 
 void AGASPlayerCharacter::OnAbility1Press()
 {
-	if (ASC)
+	if (ASC/* && IsLocallyControlled()*/)
 	{
-		ASC->AbilityLocalInputPressed(static_cast<int32>(EAbilityInputID::Shoot));
+		UE_LOG(LogTemp, Log, TEXT("입력은 들어옴"));
+		Server_ExecuteAbility1();
+	}
+}
+
+void AGASPlayerCharacter::Server_ExecuteAbility1_Implementation()
+{
+	UE_LOG(LogTemp, Log, TEXT("Server RPC 호출"));
+	ASC->AbilityLocalInputPressed(static_cast<int32>(EAbilityInputID::Shoot));
+}
+
+void AGASPlayerCharacter::InitializeInputBind(AController* ControllerToBind)
+{
+	UE_LOG(LogTemp, Log, TEXT("[%s] PossessedBy : %d"),
+		HasAuthority() ? TEXT("Server") : TEXT("Client"), GetPlayerState()->GetPlayerId());
+	if (ATestPlayerController* PC = Cast<ATestPlayerController>(GetController()))
+	{
+		PC->OnAbility1Press.Unbind();
+		PC->OnAbility1Press.BindUObject(this, &AGASPlayerCharacter::OnAbility1Press);	// 플레이어 컨트롤러의 입력 신호 받기	
+	}
+}
+
+void AGASPlayerCharacter::ClearInputBind()
+{
+	if (ATestPlayerController* PC = Cast<ATestPlayerController>(GetController()))
+	{
+		PC->OnAbility1Press.Unbind();
 	}
 }
 
