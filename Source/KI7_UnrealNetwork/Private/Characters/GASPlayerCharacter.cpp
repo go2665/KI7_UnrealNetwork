@@ -23,6 +23,7 @@ AGASPlayerCharacter::AGASPlayerCharacter()
 void AGASPlayerCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	ClearInputBind();
+	Super::EndPlay(EndPlayReason);
 }
 
 void AGASPlayerCharacter::PossessedBy(AController* NewController)
