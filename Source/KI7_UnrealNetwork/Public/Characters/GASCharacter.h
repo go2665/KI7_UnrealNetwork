@@ -34,7 +34,7 @@ protected:
 	TObjectPtr<class UAbilitySystemComponent> ASC = nullptr;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<class UWidgetComponent> Widget = nullptr;
+	TObjectPtr<class UBilboardWidgetComponent> Widget = nullptr;
 
 	UPROPERTY()
 	TObjectPtr<class UTestAttributeSet> ResourceAttributeSet = nullptr;

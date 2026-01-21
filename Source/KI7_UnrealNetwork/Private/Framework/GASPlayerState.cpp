@@ -20,10 +20,10 @@ void AGASPlayerState::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (HasAuthority())
-	{
-		SetDefaultAbilitySystemData();
-	}
+	//if (HasAuthority())
+	//{
+	//	SetDefaultAbilitySystemData();
+	//}
 }
 
 void AGASPlayerState::SetDefaultAbilitySystemData()
@@ -51,6 +51,10 @@ void AGASPlayerState::SetDefaultAbilitySystemData()
 
 				if (SpecHandle.IsValid())
 				{
+					if (HasAuthority())
+					{
+						UE_LOG(LogTemp, Log, TEXT("[%d] Initialize 이팩트 적용"), GetPlayerId());
+					}
 					ASC->ApplyGameplayEffectSpecToSelf(*SpecHandle.Data.Get());
 				}
 			}

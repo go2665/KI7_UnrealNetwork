@@ -6,14 +6,14 @@
 #include "UI/DataLineWidget.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemBlueprintLibrary.h"
-#include "Components/WidgetComponent.h"
+#include "Components/BilboardWidgetComponent.h"
 
 // Sets default values
 AGASCharacter::AGASCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	
-	Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
+	Widget = CreateDefaultSubobject<UBilboardWidgetComponent>(TEXT("Widget"));
 	Widget->SetupAttachment(GetRootComponent());
 
 	ASC = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("ASC"));

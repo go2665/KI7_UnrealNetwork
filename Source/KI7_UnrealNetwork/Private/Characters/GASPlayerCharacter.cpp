@@ -7,7 +7,7 @@
 #include "GAS/TestAttributeSet.h"
 #include "GAS/GameAbilitySystemEnums.h"
 #include "UI/DataLineWidget.h"
-#include "Components/WidgetComponent.h"
+#include "Components/BilboardWidgetComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
 
@@ -16,7 +16,7 @@ AGASPlayerCharacter::AGASPlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
+	Widget = CreateDefaultSubobject<UBilboardWidgetComponent>(TEXT("Widget"));
 	Widget->SetupAttachment(GetRootComponent());
 }
 
@@ -64,8 +64,8 @@ void AGASPlayerCharacter::Server_ExecuteAbility1_Implementation()
 
 void AGASPlayerCharacter::InitializeInputBind(AController* ControllerToBind)
 {
-	UE_LOG(LogTemp, Log, TEXT("[%s] PossessedBy : %d"),
-		HasAuthority() ? TEXT("Server") : TEXT("Client"), GetPlayerState()->GetPlayerId());
+	//UE_LOG(LogTemp, Log, TEXT("[%s] PossessedBy : %d"),
+	//	HasAuthority() ? TEXT("Server") : TEXT("Client"), GetPlayerState()->GetPlayerId());
 	if (ATestPlayerController* PC = Cast<ATestPlayerController>(GetController()))
 	{
 		PC->OnAbility1Press.Unbind();
@@ -95,6 +95,12 @@ void AGASPlayerCharacter::InitializeAbilitySystem()
 
 		if (ASC && ResourceAS)
 		{
+			if (HasAuthority())
+			{
+				UE_LOG(LogTemp, Log, TEXT("[%d] InitializeAbilitySystem"), PS->GetPlayerId());
+				UE_LOG(LogTemp, Log, TEXT("[%d] Widget : %p"), PS->GetPlayerId(), Widget.Get());
+				UE_LOG(LogTemp, Log, TEXT("[%d] Widget->GetWidget() : %p"), PS->GetPlayerId(), Widget ? Widget->GetWidget() : nullptr);
+			}
 			ASC->InitAbilityActorInfo(PS, this);
 			FOnGameplayAttributeValueChange& onHealthChange =
 				ASC->GetGameplayAttributeValueChangeDelegate(UTestAttributeSet::GetHealthAttribute());
@@ -102,14 +108,34 @@ void AGASPlayerCharacter::InitializeAbilitySystem()
 
 			if (Widget && Widget->GetWidget())	// Health UI 첫 초기화
 			{
+				if (HasAuthority())
+				{
+					UE_LOG(LogTemp, Log, TEXT("[%d] InitializeAbilitySystem : Widget 확인"), PS->GetPlayerId());
+				}
+
 				UDataLineWidget* HealthWidget = Cast<UDataLineWidget>(Widget->GetWidget());
-				HealthWidget->UpdateName(FText::AsNumber(ResourceAS->GetHealth()));
-				HealthWidget->UpdateIntValue(FMath::FloorToInt32(ResourceAS->GetMaxHealth()));
+				float Health = ResourceAS->GetHealth();
+				float MaxHealth = ResourceAS->GetMaxHealth();
+				HealthWidget->UpdateName(FText::AsNumber(Health));
+				HealthWidget->UpdateIntValue(FMath::FloorToInt32(MaxHealth));				
+
+				//FTimerHandle Handle;
+				//GetWorld()->GetTimerManager().SetTimer(
+				//	Handle,
+				//	[HealthWidget, Health, MaxHealth]()
+				//	{
+				//		HealthWidget->UpdateName(FText::AsNumber(Health));
+				//		HealthWidget->UpdateIntValue(FMath::FloorToInt32(MaxHealth));
+				//	},
+				//	1.0f, false
+				//);
 			}
 
 			bAbilitySystemInitialized = true;
 
-			UE_LOG(LogTemp, Log, TEXT("[%s] ASC 초기화 완료."), HasAuthority() ? TEXT("Server") : TEXT("Client"));
+			PS->SetDefaultAbilitySystemData();
+
+			//UE_LOG(LogTemp, Log, TEXT("[%s] ASC 초기화 완료."), HasAuthority() ? TEXT("Server") : TEXT("Client"));
 		}
 	}
 }
@@ -117,7 +143,7 @@ void AGASPlayerCharacter::InitializeAbilitySystem()
 void AGASPlayerCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 {
 	const float NewHealth = Data.NewValue;
-	UE_LOG(LogTemp, Log, TEXT("현재 체력 : %.1f"), NewHealth);
+	//UE_LOG(LogTemp, Log, TEXT("현재 체력 : %.1f"), NewHealth);
 
 	if (Widget && Widget->GetWidget())
 	{

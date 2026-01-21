@@ -48,7 +48,7 @@ public:
 
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<class UWidgetComponent> Widget = nullptr;
+	TObjectPtr<class UBilboardWidgetComponent> Widget = nullptr;
 
 	UPROPERTY()
 	TObjectPtr<UAbilitySystemComponent> ASC = nullptr;
