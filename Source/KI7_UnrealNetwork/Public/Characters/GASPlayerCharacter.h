@@ -26,9 +26,17 @@ protected:
 	virtual void OnRep_PlayerState() override;
 
 	void OnAbility1Press();	// 입력에 바인딩 된 함수
+	void OnAbility2Press();
+	void OnAbility2Release();
 
 	UFUNCTION(Server, Reliable)
 	void Server_ExecuteAbility1();
+	
+	UFUNCTION(Server, Reliable)
+	void Server_ExecuteAbility2();
+
+	UFUNCTION(Server, Reliable)
+	void Server_EndAbility2();
 
 private:
 	void InitializeInputBind(AController* ControllerToBind);
@@ -37,6 +45,18 @@ private:
 	virtual void OnHealthChanged(const FOnAttributeChangeData& Data);
 
 public:
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StartBeam(class UNiagaraSystem* BeamSystem, FName BeamEndParam);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdateBeamEndPoint(FName BeamEndParam, const FVector& EndPoint);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_StopBeam();
+
+	UFUNCTION(Server, Reliable)
+	void Server_RequestIgnoreMoveInput(bool bIgnore);
+
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override { return ASC; }
 	UTestAttributeSet* GetResourceAttributeSet() const { return ResourceAS; }
 
@@ -58,4 +78,8 @@ protected:
 
 	// 어빌리티 시스템 초기화 했는지 확인용
 	bool bAbilitySystemInitialized = false;
+
+private:
+	UPROPERTY()
+	class UNiagaraComponent* BeamNiagaraComponent = nullptr;
 };

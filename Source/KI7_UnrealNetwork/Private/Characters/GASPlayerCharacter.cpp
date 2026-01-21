@@ -10,6 +10,9 @@
 #include "Components/BilboardWidgetComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GameFramework/PlayerState.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
 
 // Sets default values
 AGASPlayerCharacter::AGASPlayerCharacter()
@@ -51,15 +54,43 @@ void AGASPlayerCharacter::OnAbility1Press()
 {
 	if (ASC/* && IsLocallyControlled()*/)
 	{
-		UE_LOG(LogTemp, Log, TEXT("입력은 들어옴"));
+		//UE_LOG(LogTemp, Log, TEXT("입력은 들어옴"));
 		Server_ExecuteAbility1();
+	}
+}
+
+void AGASPlayerCharacter::OnAbility2Press()
+{
+	if (ASC)
+	{
+		//UE_LOG(LogTemp, Log, TEXT("입력은 들어옴 2 Press"));
+		Server_ExecuteAbility2();
+	}
+}
+
+void AGASPlayerCharacter::OnAbility2Release()
+{
+	if (ASC)
+	{
+		//UE_LOG(LogTemp, Log, TEXT("입력은 들어옴 2 Release"));
+		Server_EndAbility2();
 	}
 }
 
 void AGASPlayerCharacter::Server_ExecuteAbility1_Implementation()
 {
-	UE_LOG(LogTemp, Log, TEXT("Server RPC 호출"));
+	//UE_LOG(LogTemp, Log, TEXT("Server RPC 호출"));
 	ASC->AbilityLocalInputPressed(static_cast<int32>(EAbilityInputID::Shoot));
+}
+
+void AGASPlayerCharacter::Server_ExecuteAbility2_Implementation()
+{
+	ASC->AbilityLocalInputPressed(static_cast<int32>(EAbilityInputID::Beam));
+}
+
+void AGASPlayerCharacter::Server_EndAbility2_Implementation()
+{
+	ASC->AbilityLocalInputReleased(static_cast<int32>(EAbilityInputID::Beam));
 }
 
 void AGASPlayerCharacter::InitializeInputBind(AController* ControllerToBind)
@@ -70,6 +101,12 @@ void AGASPlayerCharacter::InitializeInputBind(AController* ControllerToBind)
 	{
 		PC->OnAbility1Press.Unbind();
 		PC->OnAbility1Press.BindUObject(this, &AGASPlayerCharacter::OnAbility1Press);	// 플레이어 컨트롤러의 입력 신호 받기	
+
+		PC->OnAbility2Press.Unbind();
+		PC->OnAbility2Press.BindUObject(this, &AGASPlayerCharacter::OnAbility2Press);
+
+		PC->OnAbility2Release.Unbind();
+		PC->OnAbility2Release.BindUObject(this, &AGASPlayerCharacter::OnAbility2Release);
 	}
 }
 
@@ -78,6 +115,8 @@ void AGASPlayerCharacter::ClearInputBind()
 	if (ATestPlayerController* PC = Cast<ATestPlayerController>(GetController()))
 	{
 		PC->OnAbility1Press.Unbind();
+		PC->OnAbility2Press.Unbind();
+		PC->OnAbility2Release.Unbind();
 	}
 }
 
@@ -98,20 +137,20 @@ void AGASPlayerCharacter::InitializeAbilitySystem()
 			if (HasAuthority())
 			{
 				UE_LOG(LogTemp, Log, TEXT("[%d] InitializeAbilitySystem"), PS->GetPlayerId());
-				UE_LOG(LogTemp, Log, TEXT("[%d] Widget : %p"), PS->GetPlayerId(), Widget.Get());
-				UE_LOG(LogTemp, Log, TEXT("[%d] Widget->GetWidget() : %p"), PS->GetPlayerId(), Widget ? Widget->GetWidget() : nullptr);
+				//UE_LOG(LogTemp, Log, TEXT("[%d] Widget : %p"), PS->GetPlayerId(), Widget.Get());
+				//UE_LOG(LogTemp, Log, TEXT("[%d] Widget->GetWidget() : %p"), PS->GetPlayerId(), Widget ? Widget->GetWidget() : nullptr);
 			}
 			ASC->InitAbilityActorInfo(PS, this);
 			FOnGameplayAttributeValueChange& onHealthChange =
 				ASC->GetGameplayAttributeValueChangeDelegate(UTestAttributeSet::GetHealthAttribute());
 			onHealthChange.AddUObject(this, &AGASPlayerCharacter::OnHealthChanged);
 
-			if (Widget && Widget->GetWidget())	// Health UI 첫 초기화
+			if (Widget && Widget->GetWidget())	// Health UI 첫 초기화(문제 : 서버는 Widget->GetWidget()을 해도 nullptr이다)
 			{
-				if (HasAuthority())
-				{
-					UE_LOG(LogTemp, Log, TEXT("[%d] InitializeAbilitySystem : Widget 확인"), PS->GetPlayerId());
-				}
+				//if (HasAuthority())
+				//{
+				//	UE_LOG(LogTemp, Log, TEXT("[%d] InitializeAbilitySystem : Widget 확인"), PS->GetPlayerId());
+				//}
 
 				UDataLineWidget* HealthWidget = Cast<UDataLineWidget>(Widget->GetWidget());
 				float Health = ResourceAS->GetHealth();
@@ -150,6 +189,57 @@ void AGASPlayerCharacter::OnHealthChanged(const FOnAttributeChangeData& Data)
 		UDataLineWidget* HealthWidget = Cast<UDataLineWidget>(Widget->GetWidget());
 		HealthWidget->UpdateName(FText::AsNumber(NewHealth));
 		HealthWidget->UpdateIntValue(FMath::FloorToInt32(ResourceAS->GetMaxHealth()));
+	}
+}
+
+void AGASPlayerCharacter::Multicast_StartBeam_Implementation(UNiagaraSystem* BeamSystem, FName BeamEndParam)
+{
+	if (BeamSystem )
+	{
+		if (BeamNiagaraComponent)
+		{
+			BeamNiagaraComponent->DestroyComponent();
+			BeamNiagaraComponent = nullptr;
+		}
+		BeamNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+			BeamSystem,
+			GetRootComponent(),
+			NAME_None,
+			FVector::ZeroVector, FRotator::ZeroRotator,
+			EAttachLocation::SnapToTarget,
+			true
+		);
+
+		if (BeamNiagaraComponent)
+		{
+			// 끝점을 아바타 케릭터 위치로 설정(=안보임)
+			BeamNiagaraComponent->SetVariablePosition(BeamEndParam, GetActorLocation());
+		}
+	}
+}
+
+void AGASPlayerCharacter::Multicast_StopBeam_Implementation()
+{
+	if (BeamNiagaraComponent)
+	{
+		BeamNiagaraComponent->DestroyComponent();
+		BeamNiagaraComponent = nullptr;
+	}
+}
+
+void AGASPlayerCharacter::Multicast_UpdateBeamEndPoint_Implementation(FName BeamEndParam, const FVector& EndPoint)
+{
+	if (BeamNiagaraComponent)
+	{
+		BeamNiagaraComponent->SetVariablePosition(BeamEndParam, EndPoint);
+	}
+}
+
+void AGASPlayerCharacter::Server_RequestIgnoreMoveInput_Implementation(bool bIgnore)
+{
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		PC->ClientIgnoreMoveInput(bIgnore);
 	}
 }
 
